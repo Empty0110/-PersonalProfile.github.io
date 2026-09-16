@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>關於我 - 灼空</title>
+    <style>
+        body {
+            background-color: #e3f2fd;
+            color: #546e7a;
+            font-family: "Microsoft JhengHei", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px; 
+            margin: 0;
+            line-height: 1.8;
+            min-height: 100vh;
+        }
+
+        /* 頂部後台控制列 */
+        .admin-controls {
+            display: none; /* 預設隱藏，登入後顯示 */
+            width: 100%;
+            max-width: 500px;
+            background-color: #fff3e0;
+            border: 2px dashed #ffb74d;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.2s;
+        }
+
+        .btn-save { background-color: #66bb6a; color: white; }
+        .btn-save:hover { background-color: #4caf50; }
+        .btn-logout { background-color: #e57373; color: white; }
+        .btn-logout:hover { background-color: #ef5350; }
+
+        .article-container {
+            background-color: white;
+            padding: 35px 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            max-width: 500px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 10px;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: #64b5f6;
+            border-bottom: 2px solid #e1f5fe;
+            padding-bottom: 8px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h2:first-of-type {
+            margin-top: 10px;
+        }
+
+        p {
+            margin: 10px 0;
+            font-size: 1em;
+        }
+
+        /* 暱稱與基本資料標籤 */
+        .info-badge {
+            display: inline-block;
+            background-color: #f5f5f5;
+            color: #78909c;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        /* 時間軸與清單樣式 */
+        .timeline-list, .event-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 10px 0;
+        }
+
+        .timeline-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .timeline-list li::before {
+            content: "•";
+            color: #64b5f6;
+            font-size: 1.2em;
+            position: absolute;
+            left: 5px;
+            top: -2px;
+        }
+
+        .event-list li {
+            background-color: #edf7ff;
+            margin-bottom: 8px;
+            padding: 8px 15px;
+            border-radius: 10px;
+            color: #4b6b7a;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+
+        /* 🌟 當進入編輯模式時的行內外框線提示 */
+        .editable.editing {
+            outline: 2px dashed #64b5f6;
+            background-color: #f1f8ff;
+            border-radius: 6px;
+            padding: 2px 6px;
+        }
+
+        /* 底部感謝與返回區塊 */
+        .footer-note {
+            text-align: center;
+            margin-top: 35px;
+            padding-top: 20px;
+            border-top: 1px dashed #cfd8dc;
+            font-size: 0.95em;
+            color: #90a4ae;
+        }
+
+        .back-btn-container {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #90a4ae;
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+        }
+
+        .back-btn:hover {
+            background-color: #78909c;
+            transform: translateY(-2px);
+        }
+
+        /* 頁尾樣式 */
+        footer {
+            margin-top: auto;
+            padding: 20px 0;
+            font-size: 0.9em;
+            color: #90a4ae;
+            text-align: center;
+            user-select: none;
+        }
+        
+        #admin-trigger {
+            color: #78909c;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        #admin-trigger:hover { color: #64b5f6; }
+
+        /* 驗證視窗彈窗樣式 */
+        .form-modal {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); 
+            z-index: 2000; 
+            justify-content: center; align-items: center;
+        }
+
+        .modal-box {
+            background-color: white;
+            padding: 25px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-sizing: border-box;
+        }
+
+        .modal-box h3 { margin-top: 0; color: #546e7a; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; color: #78909c; }
+        .form-group input[type="password"] {
+            width: 100%; padding: 10px; border: 1px solid #cfd8dc; border-radius: 8px; box-sizing: border-box; color: #546e7a;
+        }
+        .form-group input:focus { border-color: #64b5f6; outline: none; }
+
+        .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-submit { background-color: #64b5f6; color: white; }
+        .btn-cancel { background-color: #cfd8dc; color: #546e7a; }
+    </style>
+</head>
+<body>
+
+    <div id="adminControls" class="admin-controls">
+        <span>🛠️ <strong>個人自介編輯模式已啟用</strong></span>
+        <div>
+            <button class="admin-btn btn-save" onclick="saveAboutData()">💾 儲存所有修改</button>
+            <button class="admin-btn btn-logout" onclick="logoutAdmin()">🔒 退出管理</button>
+        </div>
+    </div>
+
+    <div class="article-container">
+        <h2>哈嘍啊！我是 <span id="edit-name" class="editable">Empty</span></h2>
+        <p>
+            <span class="info-badge">其他暱稱：<span id="edit-nicknames" class="editable">灼空、空</span></span>
+            <span class="info-badge">性向：<span id="edit-orientation" class="editable">異</span></span>
+        </p>
+        <p id="edit-custom-call" class="editable">你也可以用任何其他我能接受的稱呼方式來叫我喔（？</p>
+        
+        <h2>獸圈足跡與紀錄</h2>
+        <ul id="edit-timeline" class="timeline-list editable">
+            <li><strong>2025 / 09</strong> － 加入獸圈，希望能認識更多新朋友！</li>
+            <li><strong>2026 / 03 / 05</strong> － 毛毛誕生 （工作室：木靈夢園）</li>
+            <li><strong>2026 / 03 / 07</strong> － 第一次正式出門毛拍</li>
+        </ul>
+
+        <h2>曾參與的獸聚</h2>
+        <ul id="edit-events" class="event-list editable">
+            <li>2025 無限 Infurnity</li>
+            <li>2026 與茶會毛</li>
+            <li>2026 UTFG</li>
+        </ul>
+
+        <h2>關於我的個性</h2>
+        <div id="edit-personality" class="editable">
+            <p>我本身有一點內向，其實不太怎麼會聊天，這部分還請多多見諒</p>
+            <p>不過我很隨性的！聊天的內容我都會盡全力回答。如果你願意主動和我聊天，我真的會非常非常感激你！隨時歡迎來加好友或找我聊天喔！</p>
+        </div>
+
+        <h2>興趣與喜好</h2>
+        <ul id="edit-interests" class="timeline-list editable">
+            <li><strong>畫畫</strong>：喜歡畫一些簡單可愛的那種小插畫。</li>
+            <li><strong>音樂</strong>：平常經常聽日本流行音樂（J-Pop），特別推 <strong>ヨルシカ（Yorushika）</strong>！</li>
+        </ul>
+
+        <div id="edit-footer-note" class="footer-note editable">
+            <p>謝謝你/妳來過!</p>
+            <p>歡迎透過主頁的連結戳友認識喔！</p>
+        </div>
+    </div>
+
+    <div class="back-btn-container">
+        <a href="灼空.html" class="back-btn">← 返回主頁連結</a>
+    </div>
+
+    <footer>
+        Create from <span id="admin-trigger" onclick="openLoginModal()">灼空</span>
+    </footer>
+
+    <div id="loginModal" class="form-modal">
+        <div class="modal-box">
+            <h3>🔑 身分驗證</h3>
+            <div class="form-group">
+                <label for="adminPassword">請輸入編輯者管理密碼：</label>
+                <input type="password" id="adminPassword" placeholder="輸入密碼...">
+            </div>
+            <div class="modal-btns">
+                <button class="admin-btn btn-cancel" onclick="closeModal('loginModal')">取消</button>
+                <button class="admin-btn btn-submit" onclick="verifyPassword()">登入</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let isEditMode = false;
+
+        // 頁面加載時，自動檢查是否有先前儲存過的自介資料
+        window.onload = function() {
+            const savedData = localStorage.getItem("about_me_data");
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                if(data.name) document.getElementById("edit-name").innerHTML = data.name;
+                if(data.nicknames) document.getElementById("edit-nicknames").innerHTML = data.nicknames;
+                if(data.orientation) document.getElementById("edit-orientation").innerHTML = data.orientation;
+                if(data.customCall) document.getElementById("edit-custom-call").innerHTML = data.customCall;
+                if(data.timeline) document.getElementById("edit-timeline").innerHTML = data.timeline;
+                if(data.events) document.getElementById("edit-events").innerHTML = data.events;
+                if(data.personality) document.getElementById("edit-personality").innerHTML = data.personality;
+                if(data.interests) document.getElementById("edit-interests").innerHTML = data.interests;
+                if(data.footerNote) document.getElementById("edit-footer-note").innerHTML = data.footerNote;
+            }
+        };
+
+        // SHA-256 轉碼功能
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // 彈窗開關控制
+        function openModal(id) { document.getElementById(id).style.display = "flex"; }
+        function closeModal(id) { document.getElementById(id).style.display = "none"; }
+        function openLoginModal() { 
+            document.getElementById("adminPassword").value = "";
+            openModal("loginModal"); 
+        }
+
+        // 密碼驗證邏輯
+        async function verifyPassword() {
+            const inputPwd = document.getElementById("adminPassword").value;
+            const inputHashed = await sha256(inputPwd);
+
+            // 直接比對來自 config.js 的全域 HASHED_PASSWORD_KEY
+            if (inputHashed === HASHED_PASSWORD_KEY) {
+                isEditMode = true;
+                closeModal("loginModal");
+                document.getElementById("adminControls").style.display = "flex";
+                
+                // 啟用行內編輯狀態
+                document.querySelectorAll(".editable").forEach(el => {
+                    el.setAttribute("contenteditable", "true");
+                    el.classList.add("editing");
+                });
+                alert("驗證成功！自介行內編輯功能已啟用，您可以直接在畫面上點擊文字進行修改。");
+            } else {
+                alert("密碼錯誤！無法啟用編輯功能。");
+            }
+        }
+
+        // 儲存所有修改至 LocalStorage
+        function saveAboutData() {
+            const aboutData = {
+                name: document.getElementById("edit-name").innerHTML,
+                nicknames: document.getElementById("edit-nicknames").innerHTML,
+                orientation: document.getElementById("edit-orientation").innerHTML,
+                customCall: document.getElementById("edit-custom-call").innerHTML,
+                timeline: document.getElementById("edit-timeline").innerHTML,
+                events: document.getElementById("edit-events").innerHTML,
+                personality: document.getElementById("edit-personality").innerHTML,
+                interests: document.getElementById("edit-interests").innerHTML,
+                footerNote: document.getElementById("edit-footer-note").innerHTML
+            };
+
+            localStorage.setItem("about_me_data", JSON.stringify(aboutData));
+            alert("所有自介修改已成功儲存！");
+        }
+
+        // 退出管理模式
+        function logoutAdmin() {
+            isEditMode = false;
+            document.getElementById("adminControls").style.display = "none";
+            
+            // 關閉行內編輯狀態
+            document.querySelectorAll(".editable").forEach(el => {
+                el.removeAttribute("contenteditable");
+                el.classList.remove("editing");
+            });
+            alert("已關閉編輯狀態。如有修改且未點擊儲存，重新整理後將回復原狀。");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>毛照相簿 - 灼空</title>
+    <style>
+        body {
+            background-color: #e3f2fd;
+            color: #546e7a;
+            font-family: "Microsoft JhengHei", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px; 
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #64b5f6;
+            font-size: 2em;
+            margin-top: 10px; 
+            text-align: center; 
+            width: 100%; 
+        }
+
+        .gallery-container {
+            width: 100%;
+            max-width: 600px; 
+            margin-top: 20px;
+            margin-bottom: 30px;
+            box-sizing: border-box;
+        }
+
+        /* 頂部後台控制列 */
+        .admin-controls {
+            display: none; 
+            width: 100%;
+            max-width: 600px;
+            background-color: #fff3e0;
+            border: 2px dashed #ffb74d;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.2s;
+        }
+
+        .btn-add { background-color: #81c784; color: white; }
+        .btn-add:hover { background-color: #66bb6a; }
+        .btn-logout { background-color: #e57373; color: white; }
+        .btn-logout:hover { background-color: #ef5350; }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+        .photo-card {
+            background-color: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+
+        .photo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            cursor: zoom-in; 
+        }
+
+        .photo-info {
+            padding: 15px;
+            background-color: #fafbfc;
+            border-top: 1px solid #f0f4f8;
+            font-size: 0.9em;
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+
+        .photo-info p { margin: 4px 0; }
+        .photo-info .date { color: #42a5f5; font-weight: bold; }
+        .photo-info .photographer { color: #78909c; }
+
+        /* 卡片管理按鈕區 */
+        .card-admin-bar {
+            display: none;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-top: 1px solid #e0e0e0;
+            justify-content: space-around;
+            gap: 10px;
+        }
+        .btn-card-edit { background-color: #64b5f6; color: white; flex: 1; }
+        .btn-card-del { background-color: #e57373; color: white; flex: 1; }
+
+        .back-btn-container {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #90a4ae;
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+        }
+
+        .back-btn:hover {
+            background-color: #78909c;
+            transform: translateY(-2px);
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 20px 0;
+            font-size: 0.9em;
+            color: #90a4ae;
+            text-align: center;
+            user-select: none;
+        }
+        
+        #admin-trigger {
+            color: #78909c;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        #admin-trigger:hover { color: #64b5f6; }
+
+        /* 彈窗樣式 */
+        .image-modal, .form-modal {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); 
+            z-index: 2000; 
+            justify-content: center; align-items: center;
+            overflow: auto; 
+        }
+
+        .form-modal { background-color: rgba(0, 0, 0, 0.6); }
+
+        .modal-content {
+            max-width: 90%; max-height: 85%;
+            object-fit: contain; border-radius: 8px;
+            cursor: zoom-in; transition: transform 0.3s ease;
+            user-select: none;
+        }
+
+        .modal-content.zoomed { transform: scale(1.5); cursor: zoom-out; }
+
+        .modal-box {
+            background-color: white;
+            padding: 25px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-sizing: border-box;
+        }
+
+        .modal-box h3 { margin-top: 0; color: #546e7a; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; color: #78909c; }
+        .form-group input[type="text"], .form-group input[type="password"] {
+            width: 100%; padding: 10px; border: 1px solid #cfd8dc; border-radius: 8px; box-sizing: border-box; color: #546e7a;
+        }
+        .form-group input:focus { border-color: #64b5f6; outline: none; }
+        
+        .radio-group { display: flex; gap: 15px; margin-bottom: 8px; }
+        .radio-group label { font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+        .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-submit { background-color: #64b5f6; color: white; }
+        .btn-cancel { background-color: #cfd8dc; color: #546e7a; }
+
+        .close-btn {
+            position: absolute; top: 20px; right: 30px; color: #ffffff;
+            font-size: 40px; font-weight: bold; cursor: pointer; user-select: none; z-index: 2001;
+        }
+        .close-btn:hover { color: #64b5f6; }
+
+        @media (max-width: 600px) {
+            .photo-grid { grid-template-columns: 1fr; }
+            .modal-content.zoomed { transform: scale(1.2); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📸 毛照相簿</h1>
+
+    <div id="adminControls" class="admin-controls">
+        <span>🛠️ <strong>編輯管理模式已啟用</strong></span>
+        <div>
+            <button class="admin-btn btn-add" onclick="openAddModal()">➕ 新增照片欄位</button>
+            <button class="admin-btn btn-logout" onclick="logoutAdmin()">🔒 退出管理</button>
+        </div>
+    </div>
+
+    <div class="gallery-container">
+        <div id="photoGrid" class="photo-grid"></div>
+    </div>
+
+    <div class="back-btn-container">
+        <a href="灼空.html" class="back-btn">← 返回主頁連結</a>
+    </div>
+
+    <footer>
+        Create from <span id="admin-trigger" onclick="openLoginModal()">灼空</span>
+    </footer>
+
+    <div id="imageModal" class="image-modal">
+        <span class="close-btn" onclick="closeModal('imageModal')">&times;</span>
+        <img class="modal-content" id="modalImg" alt="放大圖片預覽">
+    </div>
+
+    <div id="loginModal" class="form-modal">
+        <div class="modal-box">
+            <h3>🔑 身分驗證</h3>
+            <div class="form-group">
+                <label for="adminPassword">請輸入編輯者管理密碼：</label>
+                <input type="password" id="adminPassword" placeholder="輸入密碼...">
+            </div>
+            <div class="modal-btns">
+                <button class="admin-btn btn-cancel" onclick="closeModal('loginModal')">取消</button>
+                <button class="admin-btn btn-submit" onclick="verifyPassword()">登入</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="photoFormModal" class="form-modal">
+        <div class="modal-box">
+            <h3 id="formTitle">新增照片欄位</h3>
+            <input type="hidden" id="editIndex">
+            
+            <div class="form-group">
+                <label>圖片來源類型：</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="srcType" value="path" checked onchange="toggleSrcInput()">輸入路徑/網址</label>
+                    <label><input type="radio" name="srcType" value="file" onchange="toggleSrcInput()">上傳本地照片</label>
+                </div>
+                <input type="text" id="photoSrcInput" placeholder="例如：images/fursuit1.jpg 或網址">
+                <input type="file" id="photoFileInput" accept="image/*" style="display: none;">
+            </div>
+
+            <div class="form-group">
+                <label for="photoDate">拍攝日期：</label>
+                <input type="text" id="photoDate" placeholder="例如：2026 / 03 / 07">
+            </div>
+
+            <div class="form-group">
+                <label for="photoPhotographer">拍攝者：</label>
+                <input type="text" id="photoPhotographer" placeholder="例如：某某攝影師">
+            </div>
+
+            <div class="modal-btns">
+                <button class="admin-btn btn-cancel" onclick="closeModal('photoFormModal')">取消</button>
+                <button class="admin-btn btn-submit" onclick="savePhotoData()">儲存儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let isEditMode = false;
+        let photoData = [];
+
+        const defaultPhotos = [
+            { src: "images/fursuit1.jpg", date: "2026 / 03 / 07", photographer: "[填入拍攝者]" },
+            { src: "images/fursuit2.jpg", date: "2026 / 03 / 07", photographer: "[填入拍攝者]" }
+        ];
+
+        window.onload = function() {
+            const savedData = localStorage.getItem("fursuit_photos");
+            if (savedData) {
+                photoData = JSON.parse(savedData);
+            } else {
+                photoData = defaultPhotos;
+                localStorage.setItem("fursuit_photos", JSON.stringify(photoData));
+            }
+            renderPhotos();
+        };
+
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function renderPhotos() {
+            const grid = document.getElementById("photoGrid");
+            grid.innerHTML = "";
+
+            photoData.forEach((item, index) => {
+                const card = document.createElement("div");
+                card.className = "photo-card";
+                
+                card.innerHTML = `
+                    <img src="${item.src}" alt="毛照" onclick="openLightbox('${item.src}')">
+                    <div class="photo-info">
+                        <p class="date">📅 日期：${item.date}</p>
+                        <p class="photographer">📷 拍攝者：${item.photographer}</p>
+                    </div>
+                    <div class="card-admin-bar" style="display: ${isEditMode ? 'flex' : 'none'}">
+                        <button class="admin-btn btn-card-edit" onclick="openEditModal(${index})">✏️ 編輯</button>
+                        <button class="admin-btn btn-card-del" onclick="deletePhoto(${index})">🗑️ 刪除</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = "flex"; }
+        function closeModal(id) { document.getElementById(id).style.display = "none"; }
+        function openLoginModal() { 
+            document.getElementById("adminPassword").value = "";
+            openModal("loginModal"); 
+        }
+
+        async function verifyPassword() {
+            const inputPwd = document.getElementById("adminPassword").value;
+            const inputHashed = await sha256(inputPwd);
+
+            // 直接讀取來自 config.js 的 HASHED_PASSWORD_KEY
+            if (inputHashed === HASHED_PASSWORD_KEY) {
+                isEditMode = true;
+                closeModal("loginModal");
+                document.getElementById("adminControls").style.display = "flex";
+                renderPhotos();
+                alert("驗證成功！管理編輯功能已啟用。");
+            } else {
+                alert("密碼錯誤！無法啟用編輯功能。");
+            }
+        }
+
+        function logoutAdmin() {
+            isEditMode = false;
+            document.getElementById("adminControls").style.display = "none";
+            renderPhotos();
+            alert("已成功退出編輯模式。");
+        }
+
+        function toggleSrcInput() {
+            const type = document.querySelector('input[name="srcType"]:checked').value;
+            if (type === "path") {
+                document.getElementById("photoSrcInput").style.display = "block";
+                document.getElementById("photoFileInput").style.display = "none";
+            } else {
+                document.getElementById("photoSrcInput").style.display = "none";
+                document.getElementById("photoFileInput").style.display = "block";
+            }
+        }
+
+        function openAddModal() {
+            document.getElementById("formTitle").innerText = "新增照片欄位";
+            document.getElementById("editIndex").value = "-1";
+            document.getElementById("photoSrcInput").value = "";
+            document.getElementById("photoFileInput").value = "";
+            document.getElementById("photoDate").value = "";
+            document.getElementById("photoPhotographer").value = "";
+            document.querySelector('input[name="srcType"][value="path"]').checked = true;
+            toggleSrcInput();
+            openModal("photoFormModal");
+        }
+
+        function openEditModal(index) {
+            const data = photoData[index];
+            document.getElementById("formTitle").innerText = "修改照片資訊";
+            document.getElementById("editIndex").value = index;
+            document.getElementById("photoSrcInput").value = data.src;
+            document.getElementById("photoDate").value = data.date;
+            document.getElementById("photoPhotographer").value = data.photographer;
+            document.querySelector('input[name="srcType"][value="path"]').checked = true;
+            toggleSrcInput();
+            openModal("photoFormModal");
+        }
+
+        function savePhotoData() {
+            const index = parseInt(document.getElementById("editIndex").value);
+            const date = document.getElementById("photoDate").value || "未註記";
+            const photographer = document.getElementById("photoPhotographer").value || "未知";
+            const type = document.querySelector('input[name="srcType"]:checked').value;
+
+            const processSave = (srcString) => {
+                if (!srcString) {
+                    alert("請提供相片路徑、網址或選擇檔案！");
+                    return;
+                }
+                
+                const newPhoto = { src: srcString, date: date, photographer: photographer };
+                
+                if (index === -1) {
+                    photoData.push(newPhoto);
+                } else {
+                    photoData[index] = newPhoto;
+                }
+                
+                localStorage.setItem("fursuit_photos", JSON.stringify(photoData));
+                renderPhotos();
+                closeModal("photoFormModal");
+            };
+
+            if (type === "file") {
+                const fileInput = document.getElementById("photoFileInput");
+                if (fileInput.files && fileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        processSave(e.target.result);
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else if (index !== -1) {
+                    processSave(photoData[index].src);
+                } else {
+                    processSave("");
+                }
+            } else {
+                const srcText = document.getElementById("photoSrcInput").value;
+                processSave(srcText);
+            }
+        }
+
+        function deletePhoto(index) {
+            if (confirm("確定要刪除這張照片的欄位嗎？此動作無法復原。")) {
+                photoData.splice(index, 1);
+                localStorage.setItem("fursuit_photos", JSON.stringify(photoData));
+                renderPhotos();
+            }
+        }
+
+        const imgModal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImg");
+
+        function openLightbox(src) {
+            imgModal.style.display = "flex";
+            modalImg.src = src;
+            modalImg.classList.remove("zoomed");
+        }
+
+        modalImg.addEventListener("click", (e) => {
+            e.stopPropagation();
+            modalImg.classList.toggle("zoomed");
+        });
+
+        imgModal.addEventListener("click", () => {
+            closeModal("imageModal");
+        });
+    </script>
+</body>
+</html>

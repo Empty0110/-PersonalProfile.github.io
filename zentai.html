@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小英雄相簿 - 灼空</title>
+    <style>
+        body {
+            background-color: #263238; 
+            color: #cfd8dc;
+            font-family: "Microsoft JhengHei", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px; 
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #ef5350;
+            font-size: 2em;
+            margin-top: 10px; 
+            text-align: center; 
+            width: 100%; 
+        }
+
+        .gallery-container {
+            width: 100%;
+            max-width: 700px; 
+            margin-top: 20px;
+            margin-bottom: 30px;
+            box-sizing: border-box;
+        }
+
+        /* 頂部後台控制列 */
+        .admin-controls {
+            display: none; 
+            width: 100%;
+            max-width: 700px;
+            background-color: #37474f;
+            border: 2px dashed #ef5350;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+
+        .admin-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.2s;
+        }
+
+        .btn-add { background-color: #66bb6a; color: white; }
+        .btn-add:hover { background-color: #4caf50; }
+        .btn-logout { background-color: #e57373; color: white; }
+        .btn-logout:hover { background-color: #ef5350; }
+
+        /* 相簿/照片 網格系統 */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+        /* 相簿封面卡片 */
+        .album-card {
+            background-color: #37474f;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .album-card:hover { transform: translateY(-5px); }
+
+        .album-cover {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background-color: #263238;
+        }
+
+        .album-info {
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .album-title { color: #ef5350; font-weight: bold; font-size: 1.2em; margin: 0 0 5px 0; }
+        .album-desc { color: #b0bec5; font-size: 0.9em; margin: 0; }
+
+        /* 單張照片卡片 (內頁) */
+        .photo-card {
+            background-color: #37474f;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            cursor: zoom-in;
+            border-radius: 12px;
+        }
+
+        /* 頂部相簿內頁導覽列 */
+        .inner-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #37474f;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .inner-header h2 { margin: 0; color: #ef5350; font-size: 1.3em; }
+
+        /* 卡片管理按鈕區 */
+        .card-admin-bar {
+            display: none;
+            background-color: #263238;
+            padding: 10px;
+            justify-content: space-around;
+            gap: 10px;
+        }
+        .btn-card-edit { background-color: #29b6f6; color: white; flex: 1; }
+        .btn-card-del { background-color: #ef5350; color: white; flex: 1; }
+
+        /* 返回按鈕區 */
+        .back-btn-container { text-align: center; width: 100%; margin-bottom: 20px; }
+        .back-btn {
+            display: inline-block; padding: 12px 30px;
+            background-color: #546e7a; color: white; text-decoration: none;
+            border-radius: 12px; font-weight: bold; transition: background-color 0.2s;
+        }
+        .back-btn:hover { background-color: #455a64; }
+
+        footer {
+            margin-top: auto; padding: 20px 0; font-size: 0.9em;
+            color: #78909c; text-align: center; user-select: none;
+        }
+        #admin-trigger { color: #b0bec5; font-weight: bold; cursor: pointer; text-decoration: underline; }
+        #admin-trigger:hover { color: #ef5350; }
+
+        /* 彈窗樣式 */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); z-index: 2000; 
+            justify-content: center; align-items: center; overflow: auto; 
+        }
+
+        .modal-box {
+            background-color: #37474f; color: white; padding: 25px;
+            border-radius: 16px; max-width: 400px; width: 90%; box-sizing: border-box;
+        }
+
+        .modal-box h3 { margin-top: 0; color: #ef5350; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; color: #b0bec5; }
+        .form-group input[type="text"], .form-group input[type="password"] {
+            width: 100%; padding: 10px; border: 1px solid #546e7a; border-radius: 8px; box-sizing: border-box;
+            background-color: #263238; color: white;
+        }
+        
+        .radio-group { display: flex; gap: 15px; margin-bottom: 8px; }
+        .radio-group label { font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 4px; color: #cfd8dc; }
+
+        .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-submit { background-color: #ef5350; color: white; }
+        .btn-cancel { background-color: #546e7a; color: white; }
+
+        /* 燈箱圖片 */
+        .modal-content {
+            max-width: 90%; max-height: 85%; object-fit: contain; border-radius: 8px;
+            cursor: zoom-in; transition: transform 0.3s ease; user-select: none;
+        }
+        .modal-content.zoomed { transform: scale(1.5); cursor: zoom-out; }
+        .close-btn {
+            position: absolute; top: 20px; right: 30px; color: #ffffff;
+            font-size: 40px; font-weight: bold; cursor: pointer; user-select: none; z-index: 2001;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>小英雄相簿</h1>
+
+    <div id="adminControls" class="admin-controls">
+        <span>🛠️ <strong>編輯模式</strong></span>
+        <div>
+            <button id="addBtn" class="admin-btn btn-add" onclick="handleAddClick()">➕ 新增相簿</button>
+            <button class="admin-btn btn-logout" onclick="logoutAdmin()">🔒 退出</button>
+        </div>
+    </div>
+
+    <div class="gallery-container">
+        
+        <div id="albumView">
+            <div id="albumGrid" class="grid-layout"></div>
+        </div>
+
+        <div id="photoView" style="display: none;">
+            <div class="inner-header">
+                <button class="admin-btn btn-cancel" onclick="backToAlbums()">🔙 返回列表</button>
+                <h2 id="currentAlbumTitle">相簿名稱</h2>
+            </div>
+            <div id="photoGrid" class="grid-layout"></div>
+        </div>
+
+    </div>
+
+    <div class="back-btn-container" id="mainBackBtn">
+        <a href="灼空.html" class="back-btn">← 離開相簿 返回主頁</a>
+    </div>
+
+    <footer>
+        Create from <span id="admin-trigger" onclick="openLoginModal()">灼空</span>
+    </footer>
+
+    <div id="imageModal" class="modal-overlay">
+        <span class="close-btn" onclick="closeModal('imageModal')">&times;</span>
+        <img class="modal-content" id="modalImg" alt="放大圖片">
+    </div>
+
+    <div id="loginModal" class="modal-overlay" style="background-color: rgba(0,0,0,0.7);">
+        <div class="modal-box">
+            <h3>🔑 身分驗證</h3>
+            <div class="form-group">
+                <label>請輸入密碼：</label>
+                <input type="password" id="adminPassword">
+            </div>
+            <div class="modal-btns">
+                <button class="admin-btn btn-cancel" onclick="closeModal('loginModal')">取消</button>
+                <button class="admin-btn btn-submit" onclick="verifyPassword()">登入</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="albumFormModal" class="modal-overlay" style="background-color: rgba(0,0,0,0.7);">
+        <div class="modal-box">
+            <h3 id="albumFormTitle">新增相簿</h3>
+            <input type="hidden" id="editAlbumIndex">
+            <div class="form-group">
+                <label>相簿名稱：</label>
+                <input type="text" id="albumTitleInput" placeholder="例如：2026 拍攝紀錄">
+            </div>
+            <div class="form-group">
+                <label>文字資訊/備註：</label>
+                <input type="text" id="albumDescInput" placeholder="簡單描述...">
+            </div>
+            <div class="modal-btns">
+                <button class="admin-btn btn-cancel" onclick="closeModal('albumFormModal')">取消</button>
+                <button class="admin-btn btn-submit" onclick="saveAlbum()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="photoFormModal" class="modal-overlay" style="background-color: rgba(0,0,0,0.7);">
+        <div class="modal-box">
+            <h3>新增照片至此相簿</h3>
+            <div class="form-group">
+                <label>圖片來源：</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="srcType" value="path" checked onchange="toggleSrcInput()">網址/路徑</label>
+                    <label><input type="radio" name="srcType" value="file" onchange="toggleSrcInput()">本地上傳</label>
+                </div>
+                <input type="text" id="photoSrcInput" placeholder="輸入圖片路徑">
+                <input type="file" id="photoFileInput" accept="image/*" style="display: none;">
+            </div>
+            <div class="modal-btns">
+                <button class="admin-btn btn-cancel" onclick="closeModal('photoFormModal')">取消</button>
+                <button class="admin-btn btn-submit" onclick="savePhoto()">上傳</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let isEditMode = false;
+        let zentaiData = [];
+        let currentViewAlbumIndex = -1; 
+
+        const defaultData = [
+            { title: "預設相簿", description: "這是一個測試相簿", photos: ["images/Empty.jpg"] }
+        ];
+
+        window.onload = function() {
+            const savedData = localStorage.getItem("zentai_albums");
+            if (savedData) {
+                zentaiData = JSON.parse(savedData);
+            } else {
+                zentaiData = defaultData;
+                localStorage.setItem("zentai_albums", JSON.stringify(zentaiData));
+            }
+            renderAlbums();
+        };
+
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function renderAlbums() {
+            const grid = document.getElementById("albumGrid");
+            grid.innerHTML = "";
+
+            zentaiData.forEach((album, index) => {
+                const coverSrc = album.photos.length > 0 ? album.photos[0] : "https://via.placeholder.com/300x200/263238/546e7a?text=No+Photos";
+                
+                const card = document.createElement("div");
+                card.className = "album-card";
+                
+                card.innerHTML = `
+                    <div onclick="openAlbum(${index})">
+                        <img src="${coverSrc}" class="album-cover" alt="封面">
+                        <div class="album-info">
+                            <h3 class="album-title">${album.title}</h3>
+                            <p class="album-desc">${album.description}</p>
+                        </div>
+                    </div>
+                    <div class="card-admin-bar" style="display: ${isEditMode ? 'flex' : 'none'}">
+                        <button class="admin-btn btn-card-edit" onclick="openEditAlbumModal(${index})">✏️ 修改</button>
+                        <button class="admin-btn btn-card-del" onclick="deleteAlbum(${index})">🗑️ 刪除</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openAlbum(index) {
+            currentViewAlbumIndex = index;
+            document.getElementById("albumView").style.display = "none";
+            document.getElementById("mainBackBtn").style.display = "none";
+            document.getElementById("photoView").style.display = "block";
+            document.getElementById("currentAlbumTitle").innerText = zentaiData[index].title;
+            document.getElementById("addBtn").innerText = "➕ 新增照片";
+            renderPhotos();
+        }
+
+        function backToAlbums() {
+            currentViewAlbumIndex = -1;
+            document.getElementById("photoView").style.display = "none";
+            document.getElementById("albumView").style.display = "block";
+            document.getElementById("mainBackBtn").style.display = "block";
+            document.getElementById("addBtn").innerText = "➕ 新增相簿";
+            renderAlbums();
+        }
+
+        function renderPhotos() {
+            if (currentViewAlbumIndex === -1) return;
+            const grid = document.getElementById("photoGrid");
+            grid.innerHTML = "";
+            const photos = zentaiData[currentViewAlbumIndex].photos;
+
+            photos.forEach((src, photoIndex) => {
+                const card = document.createElement("div");
+                card.className = "photo-card";
+                card.innerHTML = `
+                    <img src="${src}" onclick="openLightbox('${src}')">
+                    <div class="card-admin-bar" style="display: ${isEditMode ? 'flex' : 'none'}">
+                        <button class="admin-btn btn-card-del" onclick="deletePhoto(${photoIndex})">🗑️ 刪除這張</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = "flex"; }
+        function closeModal(id) { document.getElementById(id).style.display = "none"; }
+        function openLoginModal() { document.getElementById("adminPassword").value = ""; openModal("loginModal"); }
+
+        async function verifyPassword() {
+            const pwd = document.getElementById("adminPassword").value;
+            // 直接讀取來自 config.js 的 HASHED_PASSWORD_KEY
+            if (await sha256(pwd) === HASHED_PASSWORD_KEY) {
+                isEditMode = true;
+                closeModal("loginModal");
+                document.getElementById("adminControls").style.display = "flex";
+                currentViewAlbumIndex === -1 ? renderAlbums() : renderPhotos();
+            } else {
+                alert("密碼錯誤！");
+            }
+        }
+
+        function logoutAdmin() {
+            isEditMode = false;
+            document.getElementById("adminControls").style.display = "none";
+            currentViewAlbumIndex === -1 ? renderAlbums() : renderPhotos();
+        }
+
+        function handleAddClick() {
+            if (currentViewAlbumIndex === -1) {
+                document.getElementById("albumFormTitle").innerText = "新增相簿";
+                document.getElementById("editAlbumIndex").value = "-1";
+                document.getElementById("albumTitleInput").value = "";
+                document.getElementById("albumDescInput").value = "";
+                openModal("albumFormModal");
+            } else {
+                document.getElementById("photoSrcInput").value = "";
+                document.getElementById("photoFileInput").value = "";
+                openModal("photoFormModal");
+            }
+        }
+
+        function openEditAlbumModal(index) {
+            document.getElementById("albumFormTitle").innerText = "修改相簿資訊";
+            document.getElementById("editAlbumIndex").value = index;
+            document.getElementById("albumTitleInput").value = zentaiData[index].title;
+            document.getElementById("albumDescInput").value = zentaiData[index].description;
+            openModal("albumFormModal");
+        }
+
+        function saveAlbum() {
+            const index = parseInt(document.getElementById("editAlbumIndex").value);
+            const title = document.getElementById("albumTitleInput").value || "未命名相簿";
+            const desc = document.getElementById("albumDescInput").value || "";
+
+            if (index === -1) {
+                zentaiData.push({ title: title, description: desc, photos: [] });
+            } else {
+                zentaiData[index].title = title;
+                zentaiData[index].description = desc;
+            }
+            
+            localStorage.setItem("zentai_albums", JSON.stringify(zentaiData));
+            renderAlbums();
+            closeModal("albumFormModal");
+        }
+
+        function deleteAlbum(index) {
+            if (confirm("確定要刪除整個相簿與裡面的所有照片嗎？")) {
+                zentaiData.splice(index, 1);
+                localStorage.setItem("zentai_albums", JSON.stringify(zentaiData));
+                renderAlbums();
+            }
+        }
+
+        function toggleSrcInput() {
+            const type = document.querySelector('input[name="srcType"]:checked').value;
+            document.getElementById("photoSrcInput").style.display = type === "path" ? "block" : "none";
+            document.getElementById("photoFileInput").style.display = type === "file" ? "block" : "none";
+        }
+
+        function savePhoto() {
+            const type = document.querySelector('input[name="srcType"]:checked').value;
+            
+            const processSave = (srcString) => {
+                if (!srcString) return alert("請提供圖片！");
+                zentaiData[currentViewAlbumIndex].photos.push(srcString);
+                localStorage.setItem("zentai_albums", JSON.stringify(zentaiData));
+                renderPhotos();
+                closeModal("photoFormModal");
+            };
+
+            if (type === "file") {
+                const fileInput = document.getElementById("photoFileInput");
+                if (fileInput.files && fileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = e => processSave(e.target.result);
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else processSave("");
+            } else {
+                processSave(document.getElementById("photoSrcInput").value);
+            }
+        }
+
+        function deletePhoto(photoIndex) {
+            if (confirm("確定刪除這張照片？")) {
+                zentaiData[currentViewAlbumIndex].photos.splice(photoIndex, 1);
+                localStorage.setItem("zentai_albums", JSON.stringify(zentaiData));
+                renderPhotos();
+            }
+        }
+
+        const imgModal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImg");
+
+        function openLightbox(src) {
+            imgModal.style.display = "flex";
+            modalImg.src = src;
+            modalImg.classList.remove("zoomed");
+        }
+
+        modalImg.addEventListener("click", (e) => {
+            e.stopPropagation();
+            modalImg.classList.toggle("zoomed");
+        });
+
+        imgModal.addEventListener("click", () => closeModal("imageModal"));
+    </script>
+</body>
+</html>
